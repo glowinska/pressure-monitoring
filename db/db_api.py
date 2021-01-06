@@ -11,8 +11,8 @@ try:
 except Error as err:
     print(err)
 
-def select_sensor():
-    statement = f'SELECT * FROM sensors;'
+def select_sensor(id_trace):
+    statement = f'SELECT * FROM sensors WHERE id_trace = {id_trace};'
     df = pd.read_sql_query(statement, DB_CONN)
     return df
 
@@ -84,7 +84,7 @@ if __name__ == "__main__":
         count = count + 1
         res = delete_traces(get_time() - 5)
         res = delete_sensors(get_time() - 5)
-        res = select_sensor()
+        res = select_sensor(3)
         print('SENSORS:', res)
         res = select_traces(0)
         print('TRACES:', res)
