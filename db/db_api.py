@@ -3,6 +3,7 @@ import sqlite3
 import pandas as pd
 from datetime import datetime
 import time
+<<<<<<< HEAD
 import json
 from time import time,sleep
 import requests
@@ -24,6 +25,25 @@ def insert_sensor(conn, name, anomaly, value, date, id_trace, id):
     sensor = (name, anomaly, value, date, id_trace, id)
     statement = f'INSERT INTO sensors (name, anomaly, value, date, id_trace, id) VALUES (?, ?, ?, ?, ?, ?);'
     cur = conn.cursor()
+=======
+
+DB_FILE = pathlib.Path(__file__).resolve().parent.joinpath("DatabaseName.db").resolve()
+DB_CONN = None
+try:
+    DB_CONN = sqlite3.connect(str(DB_FILE))
+except Error as err:
+    print(err)
+
+def select_sensor(id_trace):
+    statement = f'SELECT * FROM sensors WHERE id_trace = {id_trace};'
+    df = pd.read_sql_query(statement, DB_CONN)
+    return df
+
+def insert_sensor(name, anomaly, value, date, id_trace, id):
+    sensor = (name, anomaly, value, date, id_trace, id)
+    statement = f'INSERT INTO sensors (name, anomaly, value, date, id_trace, id) VALUES (?, ?, ?, ?, ?, ?);'
+    cur = DB_CONN.cursor()
+>>>>>>> a226280ecdb280d14ceb490257d1b976bb057ef6
     cur.execute(statement, sensor)
     conn.commit()
     return cur.lastrowid
@@ -52,9 +72,15 @@ def insert_person(conn, name, surname, birth_year, disabled, id):
     conn.commit()
     return cur.lastrowid
 
+<<<<<<< HEAD
 def select_traces(conn, id_person):
     statement = f'SELECT * FROM traces WHERE id_person = {id_person};'
     df = pd.read_sql_query(statement, conn)
+=======
+def select_traces(id_person):
+    statement = f'SELECT * FROM traces WHERE id_person = {id_person};'
+    df = pd.read_sql_query(statement, DB_CONN)
+>>>>>>> a226280ecdb280d14ceb490257d1b976bb057ef6
     return df
 
 def insert_trace(conn, name, date, id_person, id):
@@ -65,6 +91,7 @@ def insert_trace(conn, name, date, id_person, id):
     conn.commit()
     return cur.lastrowid
 
+<<<<<<< HEAD
 def traces_count(conn):
     statement = f'SELECT count() FROM traces;'
     cur = conn.cursor()
@@ -84,10 +111,32 @@ def delete_sensors(conn, oldest_time):
     cur = conn.cursor()
     cur.execute(statement)
     conn.commit()
+=======
+def traces_count():
+    statement = f'SELECT count() FROM traces;'
+    cur = DB_CONN.cursor()
+    cur.execute(statement)
+    DB_CONN.commit()
+    return cur.fetchall()
+
+def delete_traces(oldest_time):
+    statement = f'DELETE FROM traces WHERE date < {oldest_time};'
+    cur = DB_CONN.cursor()
+    cur.execute(statement)
+    DB_CONN.commit()
+    return cur.fetchall()
+
+def delete_sensors(oldest_time):
+    statement = f'DELETE FROM sensors WHERE date < {oldest_time};'
+    cur = DB_CONN.cursor()
+    cur.execute(statement)
+    DB_CONN.commit()
+>>>>>>> a226280ecdb280d14ceb490257d1b976bb057ef6
     return cur.fetchall()
 
 def get_time():
     return int(datetime.now().timestamp())
+<<<<<<< HEAD
 
 def get_request(url):
     sleep(2)
@@ -157,6 +206,24 @@ if __name__ == "__main__":
 #        res = select_traces(0)
 #        print('TRACES:', res)
 #        print('COUNT:', count)
+=======
+
+if __name__ == "__main__":
+
+    count = 0
+    while True:
+        time.sleep(1)
+        res = insert_trace('Trace name', get_time(), 0, count)
+        res = insert_sensor('L1', 0, 3.14, get_time(), count, count)
+        count = count + 1
+        res = delete_traces(get_time() - 5)
+        res = delete_sensors(get_time() - 5)
+        res = select_sensor(3)
+        print('SENSORS:', res)
+        res = select_traces(0)
+        print('TRACES:', res)
+        print('COUNT:', count)
+>>>>>>> a226280ecdb280d14ceb490257d1b976bb057ef6
 
 
 # # TESTING PEOPLE TABLE
