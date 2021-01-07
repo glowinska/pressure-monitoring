@@ -8,11 +8,12 @@ import dash_core_components as dcc
 import dash_html_components as html
 import threading
 from time import sleep
+import plotly.graph_objects as go
 
 from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output, State
 from scipy.stats import rayleigh
-from db.db_api import select_people_by_id, select_sensor, select_traces, get_data
+from db.db_api import *
 
 
 GRAPH_INTERVAL = os.environ.get("GRAPH_INTERVAL", 5000)
@@ -29,6 +30,12 @@ app_color = {"graph_bg": "#082255", "graph_line": "#007ACE"}
 params = [
     'L0', 'L1', 'L2', 'R0', 'R1', 'R2'
 ]
+
+
+
+
+fig = go.Figure()
+
 
 app.layout = html.Div(
     [
@@ -59,7 +66,7 @@ app.layout = html.Div(
         ),
         html.Div(
             [
-                # wind speed
+                # wind date
                 html.Div(
                     [
                         html.Div(
@@ -67,12 +74,8 @@ app.layout = html.Div(
                         ),
                         dcc.Graph(
                             id="l0",
-                            figure=dict(
-                                layout=dict(
-                                    plot_bgcolor=app_color["graph_bg"],
-                                    paper_bgcolor=app_color["graph_bg"],
-                                )
-                            ),
+                            figure=fig,
+                            animate=True,
                         ),
                         dcc.Graph(
                             id="l1",
@@ -83,7 +86,7 @@ app.layout = html.Div(
                                 )
                             ),
                         ),
-                                                dcc.Graph(
+                        dcc.Graph(
                             id="l2",
                             figure=dict(
                                 layout=dict(
@@ -93,12 +96,12 @@ app.layout = html.Div(
                             ),
                         ),
                         dcc.Interval(
-                            id="wind-speed-update",
+                            id="wind-date-update",
                             interval=int(GRAPH_INTERVAL),
                             n_intervals=0,
                         ),
                     ],
-                    className="one-third column wind__speed__container",
+                    className="one-third column wind__date__container",
                 ),
                 # right foot
                 html.Div(
@@ -134,12 +137,12 @@ app.layout = html.Div(
                             ),
                         ),
                         dcc.Interval(
-                            id="wind-speed-update2",
+                            id="wind-date-update2",
                             interval=int(GRAPH_INTERVAL),
                             n_intervals=0,
                         ),
                     ],
-                    className="one-third column wind__speed__container",
+                    className="one-third column wind__date__container",
                 ),
 
                 html.Div(
@@ -282,16 +285,16 @@ app.layout = html.Div(
 )
 
 
-def get_current_time():
-    """ Helper function to get the current time in seconds. """
+def get_current_date():
+    """ Helper function to get the current date in seconds. """
 
     now = dt.datetime.now()
-    total_time = (now.hour * 3600) + (now.minute * 60) + (now.second)
-    return total_time
+    total_date = (now.hour * 3600) + (now.minute * 60) + (now.second)
+    return total_date
 
 
 @app.callback(
-    Output("wind-speed", "figure"), [Input("wind-speed-update", "n_intervals")]
+    Output("wind-date", "figure"), [Input("wind-date-update", "n_intervals")]
 )
 
 @app.callback(
@@ -307,28 +310,28 @@ def update_output(value):
     return 'You have selected person with id: {}'.format(value), 'NAME: {}'.format(df["name"][0]), 'SURNAME: {}'.format(df["surname"][0]), 'YEAR OF BIRTH: {}'.format(df["birth_year"][0]), 'DISABLED: {}'.format(bool(df["disabled"][0]))
 
 
-def gen_wind_speed(interval):
+def gen_wind_date(interval):
     """
-    Generate the wind speed graph.
+    Generate the wind date graph.
 
     :params interval: update the graph based on an interval
     """
 
-    total_time = get_current_time()
-    df = get_wind_data(total_time - 200, total_time)
+    total_date = get_current_date()
+    df = get_wind_data(total_date - 200, total_date)
 
     trace = dict(
         type="scatter",
-        y=df["Speed"],
+        y=df["date"],
         line={"color": "#42C4F7"},
         hoverinfo="skip",
-        error_y={
-            "type": "data",
-            "array": df["SpeedError"],
-            "thickness": 1.5,
-            "width": 2,
-            "color": "#B4E8FC",
-        },
+        # error_y={
+        #     "type": "data",
+        #     "array": df["dateError"],
+        #     "thickness": 1.5,
+        #     "width": 2,
+        #     "color": "#B4E8FC",
+        # },
         mode="lines",
     )
 
@@ -344,19 +347,19 @@ def gen_wind_speed(interval):
             "fixedrange": True,
             "tickvals": [0, 50, 100, 150, 200],
             "ticktext": ["200", "150", "100", "50", "0"],
-            "title": "Time Elapsed (sec)",
+            "title": "date Elapsed (sec)",
         },
         yaxis={
             "range": [
-                min(0, min(df["Speed"])),
-                max(45, max(df["Speed"]) + max(df["SpeedError"])),
+                min(0, min(df["date"])),
+                max(45, max(df["date"])), #+ max(df["dateError"])),
             ],
             "showgrid": True,
             "showline": True,
             "fixedrange": True,
             "zeroline": False,
             "gridcolor": app_color["graph_line"],
-            "nticks": max(6, round(df["Speed"].iloc[-1] / 10)),
+            "nticks": max(6, round(df["date"].iloc[-1] / 10)),
         },
     )
 
@@ -364,9 +367,8 @@ def gen_wind_speed(interval):
 
 
 @app.callback(
-    Output("wind-direction", "figure"), [Input("wind-speed-update", "n_intervals")]
+    Output("wind-direction", "figure"), [Input("wind-date-update", "n_intervals")]
 )
-
 def gen_wind_direction(interval):
     """
     Generate the wind direction graph.
@@ -374,9 +376,9 @@ def gen_wind_direction(interval):
     :params interval: update the graph based on an interval
     """
 
-    total_time = get_current_time()
-    df = get_wind_data_by_id(total_time)
-    val = df["Speed"].iloc[-1]
+    total_date = get_current_date()
+    df = get_wind_data_by_id(total_date)
+    val = df["date"].iloc[-1]
     direction = [0, (df["Direction"][0] - 20), (df["Direction"][0] + 20), 0]
 
     traces_scatterpolar = [
@@ -417,19 +419,19 @@ def gen_wind_direction(interval):
 
 @app.callback(
     Output("wind-histogram", "figure"),
-    [Input("wind-speed-update", "n_intervals")],
+    [Input("wind-date-update", "n_intervals")],
     [
-        State("wind-speed", "figure"),
+        State("wind-date", "figure"),
         State("bin-slider", "value"),
         State("bin-auto", "value"),
     ],
 )
-def gen_wind_histogram(interval, wind_speed_figure, slider_value, auto_state):
+def gen_wind_histogram(interval, wind_date_figure, slider_value, auto_state):
     """
     Genererate wind histogram graph.
 
     :params interval: upadte the graph based on an interval
-    :params wind_speed_figure: current wind speed graph
+    :params wind_date_figure: current wind date graph
     :params slider_value: current slider value
     :params auto_state: current auto state
     """
@@ -437,9 +439,9 @@ def gen_wind_histogram(interval, wind_speed_figure, slider_value, auto_state):
     wind_val = []
 
     try:
-        # Check to see whether wind-speed has been plotted yet
-        if wind_speed_figure is not None:
-            wind_val = wind_speed_figure["data"][0]["y"]
+        # Check to see whether wind-date has been plotted yet
+        if wind_date_figure is not None:
+            wind_val = wind_date_figure["data"][0]["y"]
         if "Auto" in auto_state:
             bin_val = np.histogram(
                 wind_val,
@@ -503,7 +505,7 @@ def gen_wind_histogram(interval, wind_speed_figure, slider_value, auto_state):
         paper_bgcolor=app_color["graph_bg"],
         font={"color": "#fff"},
         xaxis={
-            "title": "Wind Speed (mph)",
+            "title": "Wind date (mph)",
             "showgrid": False,
             "showline": False,
             "fixedrange": True,
@@ -555,18 +557,18 @@ def gen_wind_histogram(interval, wind_speed_figure, slider_value, auto_state):
 @app.callback(
     Output("bin-auto", "value"),
     [Input("bin-slider", "value")],
-    [State("wind-speed", "figure")],
+    [State("wind-date", "figure")],
 )
-def deselect_auto(slider_value, wind_speed_figure):
+def deselect_auto(slider_value, wind_date_figure):
     """ Toggle the auto checkbox. """
 
     # prevent update if graph has no data
-    if "data" not in wind_speed_figure:
+    if "data" not in wind_date_figure:
         raise PreventUpdate
-    if not len(wind_speed_figure["data"]):
+    if not len(wind_date_figure["data"]):
         raise PreventUpdate
 
-    if wind_speed_figure is not None and len(wind_speed_figure["data"][0]["y"]) > 5:
+    if wind_date_figure is not None and len(wind_date_figure["data"][0]["y"]) > 5:
         return [""]
     return ["Auto"]
 
@@ -584,14 +586,98 @@ def show_num_bins(autoValue, slider_value):
         return "# of Bins: Auto"
     return "# of Bins: " + str(int(slider_value))
 
+# @app.callback(
+#     Output("l0", "figure"), [Input("wind-speed-update", "n_intervals")]
+# )
+def gen_diag():
+    """
+    Generate the wind date graph.
+
+    :params interval: update the graph based on an interval
+    """
+    total_date = get_current_date()
+    #df = get_wind_data(total_date - 200, total_date)
+    traces = select_traces(None, 1)
+    
+    #df = select_sensor_for_trace(None, traces['id'][0], "L0")
+    df = pd.DataFrame()
+    for index, row in traces.iterrows():
+        print("XDDD")
+        print(df)
+        df = df.append(select_sensor_for_trace(None, row['id'], "L0"))
+    # for trace in traces:
+    #     print(trace)
+    #     df = select_sensor_for_trace(None, traces['id'][trace], "L0")
+    
+    print(df)
+    return df
+
+
+    trace = dict(
+        type="scatter",
+        y=df["date"],
+        line={"color": "#42C4F7"},
+        hoverinfo="skip",
+        # error_y={
+        #     "type": "data",
+        #     "array": df["dateError"],
+        #     "thickness": 1.5,
+        #     "width": 2,
+        #     "color": "#B4E8FC",
+        # },
+        mode="lines",
+    )
+
+    layout = dict(
+        plot_bgcolor=app_color["graph_bg"],
+        paper_bgcolor=app_color["graph_bg"],
+        font={"color": "#fff"},
+        height=700,
+        xaxis={
+            "range": [0, 200],
+            "showline": True,
+            "zeroline": False,
+            "fixedrange": True,
+            "tickvals": [0, 50, 100, 150, 200],
+            "ticktext": ["200", "150", "100", "50", "0"],
+            "title": "date Elapsed (sec)",
+        },
+        yaxis={
+            "range": [
+                min(0, int(min(df["date"]))),
+                max(45, int(max(df["date"])) ),#+ max(df["dateError"])),
+            ],
+            "showgrid": True,
+            "showline": True,
+            "fixedrange": True,
+            "zeroline": False,
+            "gridcolor": app_color["graph_line"],
+            "nticks": max(6, round(int(df["date"].iloc[-1]) / 10)),
+        },
+    )
+    print(layout)
+    print("XD")
+    print(trace)
+    return dict(data=[trace], layout=layout)
+
+
 
 if __name__ == "__main__":
-    #t = threading.Thread(target=get_data, args=[])
+    t = threading.Thread(target=get_data, args=[])
     #t.start()
     #sleep(10)
     #help(t)
-    #time.sleep(2) 
+    #date.sleep(2) 
     #t.raise_exception() 
-    #t.join() 
+    #t.join()
+    df= gen_diag()
+    
+    fig.update_layout(title="Figure", xaxis_title="Time", yaxis_title="Value")
+    style=dict(
+                                    plot_bgcolor=app_color["graph_bg"],
+                                    paper_bgcolor=app_color["graph_bg"],
+                                )
+    fig.update_layout(style)
+    fig.add_trace(go.Scatter(x=df['date'], y=df['value'], mode="markers", name="L0",))
     app.run_server()
     

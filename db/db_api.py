@@ -29,6 +29,8 @@ def insert_sensor(conn, name, anomaly, value, date, id_trace, id):
     return cur.lastrowid
 
 def select_sensor_for_trace(conn, id_trace, name):
+    if conn == None:
+        conn = sqlite3.connect(str(DB_FILE))
     statement = f'SELECT * FROM sensors WHERE id_trace = {id_trace} AND name ="{name}";'
     df = pd.read_sql_query(statement, conn)
     return df
@@ -53,6 +55,8 @@ def insert_person(conn, name, surname, birth_year, disabled, id):
     return cur.lastrowid
 
 def select_traces(conn, id_person):
+    if conn == None:
+        conn = sqlite3.connect(str(DB_FILE))
     statement = f'SELECT * FROM traces WHERE id_person = {id_person};'
     df = pd.read_sql_query(statement, conn)
     return df
