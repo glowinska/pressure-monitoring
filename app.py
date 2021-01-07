@@ -1,6 +1,3 @@
-import os
-import pathlib
-import numpy as np
 import datetime as dt
 import dash
 import dash_table
@@ -9,14 +6,8 @@ import dash_html_components as html
 import threading
 from time import sleep
 import plotly.graph_objects as go
-
-from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output, State
-from scipy.stats import rayleigh
 from db.db_api import *
-
-
-GRAPH_INTERVAL = os.environ.get("GRAPH_INTERVAL", 5000)
 
 app = dash.Dash(
     __name__,
@@ -25,16 +16,16 @@ app = dash.Dash(
 
 server = app.server
 
-app_color = {"graph_bg": "#082255", "graph_line": "#007ACE"}
+app_color = {"graph_bg": "#082255", "graph_line": "#309ADE"}
 
 params = [
     'L0', 'L1', 'L2', 'R0', 'R1', 'R2'
 ]
 
+figs = { 
+    'L0': go.Figure(), 'L1': go.Figure(), 'L2': go.Figure(), 'R0': go.Figure(), 'R1': go.Figure(), 'R2': go.Figure()
+}
 
-
-
-fig = go.Figure()
 
 
 app.layout = html.Div(
@@ -44,7 +35,7 @@ app.layout = html.Div(
             [
                 html.Div(
                     [
-                        html.H4("MONITORING THE PRESSURE OF THE FEET2", className="app__header__title"),
+                        html.H4("MONITORING WALKING HABITS", className="app__header__title"),
                         html.P(
                             "The application presents a graphical visualization of measurements of a device for monitoring walking habits and patterns and displays live charts of pressure and anomalies in moving.",
                             className="app__header__title--grey",
@@ -74,31 +65,18 @@ app.layout = html.Div(
                         ),
                         dcc.Graph(
                             id="l0",
-                            figure=fig,
+                            figure=figs['L0'],
                             animate=True,
                         ),
                         dcc.Graph(
                             id="l1",
-                            figure=dict(
-                                layout=dict(
-                                    plot_bgcolor=app_color["graph_bg"],
-                                    paper_bgcolor=app_color["graph_bg"],
-                                )
-                            ),
+                            figure=figs['L1'],
+                            animate=True,
                         ),
                         dcc.Graph(
                             id="l2",
-                            figure=dict(
-                                layout=dict(
-                                    plot_bgcolor=app_color["graph_bg"],
-                                    paper_bgcolor=app_color["graph_bg"],
-                                )
-                            ),
-                        ),
-                        dcc.Interval(
-                            id="wind-date-update",
-                            interval=int(GRAPH_INTERVAL),
-                            n_intervals=0,
+                            figure=figs['L2'],
+                            animate=True,
                         ),
                     ],
                     className="one-third column wind__date__container",
@@ -111,35 +89,18 @@ app.layout = html.Div(
                         ),
                         dcc.Graph(
                             id="r0",
-                            figure=dict(
-                                layout=dict(
-                                    plot_bgcolor=app_color["graph_bg"],
-                                    paper_bgcolor=app_color["graph_bg"],
-                                )
-                            ),
+                            figure=figs['R0'],
+                            animate=True,
                         ),
                         dcc.Graph(
                             id="r1",
-                            figure=dict(
-                                layout=dict(
-                                    plot_bgcolor=app_color["graph_bg"],
-                                    paper_bgcolor=app_color["graph_bg"],
-                                )
-                            ),
+                            figure=figs['R1'],
+                            animate=True,
                         ),
                             dcc.Graph(
                             id="r2",
-                            figure=dict(
-                                layout=dict(
-                                    plot_bgcolor=app_color["graph_bg"],
-                                    paper_bgcolor=app_color["graph_bg"],
-                                )
-                            ),
-                        ),
-                        dcc.Interval(
-                            id="wind-date-update2",
-                            interval=int(GRAPH_INTERVAL),
-                            n_intervals=0,
+                            figure=figs['R2'],
+                            animate=True,
                         ),
                     ],
                     className="one-third column wind__date__container",
@@ -158,7 +119,6 @@ app.layout = html.Div(
                                         )
                                     ]
                                 ),
-                                
                                 html.Div(
                                     [
                                         dcc.Dropdown(
@@ -213,16 +173,6 @@ app.layout = html.Div(
                                         )
                                     ]
                                 ),
-                                html.Div(
-                                    [
-                                        html.H2(
-                                            "ELO",
-                                            className="graph__title",
-                                            id="elo"
-                                        )
-                                    ]
-                                ),
-
                             ],
                             className="graph__container first",
                         ),
@@ -286,19 +236,11 @@ app.layout = html.Div(
 
 
 def get_current_date():
-    """ Helper function to get the current date in seconds. """
-
     now = dt.datetime.now()
     total_date = (now.hour * 3600) + (now.minute * 60) + (now.second)
     return total_date
 
-
 @app.callback(
-    Output("wind-date", "figure"), [Input("wind-date-update", "n_intervals")]
-)
-
-@app.callback(
-    Output('elo', 'children'),
     Output('person-name', 'children'),
     Output('person-surname', 'children'),
     Output('person-year', 'children'),
@@ -307,377 +249,40 @@ def get_current_date():
 def update_output(value):
     df = select_people_by_id(value)
     print(df)
-    return 'You have selected person with id: {}'.format(value), 'NAME: {}'.format(df["name"][0]), 'SURNAME: {}'.format(df["surname"][0]), 'YEAR OF BIRTH: {}'.format(df["birth_year"][0]), 'DISABLED: {}'.format(bool(df["disabled"][0]))
+    return 'NAME: {}'.format(df["name"][0]), 'SURNAME: {}'.format(df["surname"][0]), 'YEAR OF BIRTH: {}'.format(df["birth_year"][0]), 'DISABLED: {}'.format(bool(df["disabled"][0]))
 
-
-def gen_wind_date(interval):
-    """
-    Generate the wind date graph.
-
-    :params interval: update the graph based on an interval
-    """
-
+def gen_diag(sensor_name, person_id):
     total_date = get_current_date()
-    df = get_wind_data(total_date - 200, total_date)
-
-    trace = dict(
-        type="scatter",
-        y=df["date"],
-        line={"color": "#42C4F7"},
-        hoverinfo="skip",
-        # error_y={
-        #     "type": "data",
-        #     "array": df["dateError"],
-        #     "thickness": 1.5,
-        #     "width": 2,
-        #     "color": "#B4E8FC",
-        # },
-        mode="lines",
-    )
-
-    layout = dict(
-        plot_bgcolor=app_color["graph_bg"],
-        paper_bgcolor=app_color["graph_bg"],
-        font={"color": "#fff"},
-        height=700,
-        xaxis={
-            "range": [0, 200],
-            "showline": True,
-            "zeroline": False,
-            "fixedrange": True,
-            "tickvals": [0, 50, 100, 150, 200],
-            "ticktext": ["200", "150", "100", "50", "0"],
-            "title": "date Elapsed (sec)",
-        },
-        yaxis={
-            "range": [
-                min(0, min(df["date"])),
-                max(45, max(df["date"])), #+ max(df["dateError"])),
-            ],
-            "showgrid": True,
-            "showline": True,
-            "fixedrange": True,
-            "zeroline": False,
-            "gridcolor": app_color["graph_line"],
-            "nticks": max(6, round(df["date"].iloc[-1] / 10)),
-        },
-    )
-
-    return dict(data=[trace], layout=layout)
-
-
-@app.callback(
-    Output("wind-direction", "figure"), [Input("wind-date-update", "n_intervals")]
-)
-def gen_wind_direction(interval):
-    """
-    Generate the wind direction graph.
-
-    :params interval: update the graph based on an interval
-    """
-
-    total_date = get_current_date()
-    df = get_wind_data_by_id(total_date)
-    val = df["date"].iloc[-1]
-    direction = [0, (df["Direction"][0] - 20), (df["Direction"][0] + 20), 0]
-
-    traces_scatterpolar = [
-        {"r": [0, val, val, 0], "fillcolor": "#084E8A"},
-        {"r": [0, val * 0.65, val * 0.65, 0], "fillcolor": "#B4E1FA"},
-        {"r": [0, val * 0.3, val * 0.3, 0], "fillcolor": "#EBF5FA"},
-    ]
-
-    data = [
-        dict(
-            type="scatterpolar",
-            r=traces["r"],
-            theta=direction,
-            mode="lines",
-            fill="toself",
-            fillcolor=traces["fillcolor"],
-            line={"color": "rgba(32, 32, 32, .6)", "width": 1},
-        )
-        for traces in traces_scatterpolar
-    ]
-
-    layout = dict(
-        height=350,
-        plot_bgcolor=app_color["graph_bg"],
-        paper_bgcolor=app_color["graph_bg"],
-        font={"color": "#fff"},
-        autosize=False,
-        polar={
-            "bgcolor": app_color["graph_line"],
-            "radialaxis": {"range": [0, 45], "angle": 45, "dtick": 10},
-            "angularaxis": {"showline": False, "tickcolor": "white"},
-        },
-        showlegend=False,
-    )
-
-    return dict(data=data, layout=layout)
-
-
-@app.callback(
-    Output("wind-histogram", "figure"),
-    [Input("wind-date-update", "n_intervals")],
-    [
-        State("wind-date", "figure"),
-        State("bin-slider", "value"),
-        State("bin-auto", "value"),
-    ],
-)
-def gen_wind_histogram(interval, wind_date_figure, slider_value, auto_state):
-    """
-    Genererate wind histogram graph.
-
-    :params interval: upadte the graph based on an interval
-    :params wind_date_figure: current wind date graph
-    :params slider_value: current slider value
-    :params auto_state: current auto state
-    """
-
-    wind_val = []
-
-    try:
-        # Check to see whether wind-date has been plotted yet
-        if wind_date_figure is not None:
-            wind_val = wind_date_figure["data"][0]["y"]
-        if "Auto" in auto_state:
-            bin_val = np.histogram(
-                wind_val,
-                bins=range(int(round(min(wind_val))), int(round(max(wind_val)))),
-            )
-        else:
-            bin_val = np.histogram(wind_val, bins=slider_value)
-    except Exception as error:
-        raise PreventUpdate
-
-    avg_val = float(sum(wind_val)) / len(wind_val)
-    median_val = np.median(wind_val)
-
-    pdf_fitted = rayleigh.pdf(
-        bin_val[1], loc=(avg_val) * 0.55, scale=(bin_val[1][-1] - bin_val[1][0]) / 3
-    )
-
-    y_val = (pdf_fitted * max(bin_val[0]) * 20,)
-    y_val_max = max(y_val[0])
-    bin_val_max = max(bin_val[0])
-
-    trace = dict(
-        type="bar",
-        x=bin_val[1],
-        y=bin_val[0],
-        marker={"color": app_color["graph_line"]},
-        showlegend=False,
-        hoverinfo="x+y",
-    )
-
-    traces_scatter = [
-        {"line_dash": "dash", "line_color": "#2E5266", "name": "Average"},
-        {"line_dash": "dot", "line_color": "#BD9391", "name": "Median"},
-    ]
-
-    scatter_data = [
-        dict(
-            type="scatter",
-            x=[bin_val[int(len(bin_val) / 2)]],
-            y=[0],
-            mode="lines",
-            line={"dash": traces["line_dash"], "color": traces["line_color"]},
-            marker={"opacity": 0},
-            visible=True,
-            name=traces["name"],
-        )
-        for traces in traces_scatter
-    ]
-
-    trace3 = dict(
-        type="scatter",
-        mode="lines",
-        line={"color": "#42C4F7"},
-        y=y_val[0],
-        x=bin_val[1][: len(bin_val[1])],
-        name="Rayleigh Fit",
-    )
-    layout = dict(
-        height=350,
-        plot_bgcolor=app_color["graph_bg"],
-        paper_bgcolor=app_color["graph_bg"],
-        font={"color": "#fff"},
-        xaxis={
-            "title": "Wind date (mph)",
-            "showgrid": False,
-            "showline": False,
-            "fixedrange": True,
-        },
-        yaxis={
-            "showgrid": False,
-            "showline": False,
-            "zeroline": False,
-            "title": "Number of Samples",
-            "fixedrange": True,
-        },
-        autosize=True,
-        bargap=0.01,
-        bargroupgap=0,
-        hovermode="closest",
-        legend={
-            "orientation": "h",
-            "yanchor": "bottom",
-            "xanchor": "center",
-            "y": 1,
-            "x": 0.5,
-        },
-        shapes=[
-            {
-                "xref": "x",
-                "yref": "y",
-                "y1": int(max(bin_val_max, y_val_max)) + 0.5,
-                "y0": 0,
-                "x0": avg_val,
-                "x1": avg_val,
-                "type": "line",
-                "line": {"dash": "dash", "color": "#2E5266", "width": 5},
-            },
-            {
-                "xref": "x",
-                "yref": "y",
-                "y1": int(max(bin_val_max, y_val_max)) + 0.5,
-                "y0": 0,
-                "x0": median_val,
-                "x1": median_val,
-                "type": "line",
-                "line": {"dash": "dot", "color": "#BD9391", "width": 5},
-            },
-        ],
-    )
-    return dict(data=[trace, scatter_data[0], scatter_data[1], trace3], layout=layout)
-
-
-@app.callback(
-    Output("bin-auto", "value"),
-    [Input("bin-slider", "value")],
-    [State("wind-date", "figure")],
-)
-def deselect_auto(slider_value, wind_date_figure):
-    """ Toggle the auto checkbox. """
-
-    # prevent update if graph has no data
-    if "data" not in wind_date_figure:
-        raise PreventUpdate
-    if not len(wind_date_figure["data"]):
-        raise PreventUpdate
-
-    if wind_date_figure is not None and len(wind_date_figure["data"][0]["y"]) > 5:
-        return [""]
-    return ["Auto"]
-
-
-@app.callback(
-    Output("bin-size", "children"),
-    [Input("bin-auto", "value")],
-    [State("bin-slider", "value")],
-)
-
-def show_num_bins(autoValue, slider_value):
-    """ Display the number of bins. """
-
-    if "Auto" in autoValue:
-        return "# of Bins: Auto"
-    return "# of Bins: " + str(int(slider_value))
-
-# @app.callback(
-#     Output("l0", "figure"), [Input("wind-speed-update", "n_intervals")]
-# )
-def gen_diag():
-    """
-    Generate the wind date graph.
-
-    :params interval: update the graph based on an interval
-    """
-    total_date = get_current_date()
-    #df = get_wind_data(total_date - 200, total_date)
-    traces = select_traces(None, 1)
-    
-    #df = select_sensor_for_trace(None, traces['id'][0], "L0")
+    traces = select_traces(None, person_id)
     df = pd.DataFrame()
     for index, row in traces.iterrows():
-        print("XDDD")
-        print(df)
-        df = df.append(select_sensor_for_trace(None, row['id'], "L0"))
-    # for trace in traces:
-    #     print(trace)
-    #     df = select_sensor_for_trace(None, traces['id'][trace], "L0")
-    
-    print(df)
+        df = df.append(select_sensor_for_trace(None, row['id'], sensor_name))
     return df
 
-
-    trace = dict(
-        type="scatter",
-        y=df["date"],
-        line={"color": "#42C4F7"},
-        hoverinfo="skip",
-        # error_y={
-        #     "type": "data",
-        #     "array": df["dateError"],
-        #     "thickness": 1.5,
-        #     "width": 2,
-        #     "color": "#B4E8FC",
-        # },
-        mode="lines",
-    )
-
-    layout = dict(
-        plot_bgcolor=app_color["graph_bg"],
-        paper_bgcolor=app_color["graph_bg"],
-        font={"color": "#fff"},
-        height=700,
-        xaxis={
-            "range": [0, 200],
-            "showline": True,
-            "zeroline": False,
-            "fixedrange": True,
-            "tickvals": [0, 50, 100, 150, 200],
-            "ticktext": ["200", "150", "100", "50", "0"],
-            "title": "date Elapsed (sec)",
-        },
-        yaxis={
-            "range": [
-                min(0, int(min(df["date"]))),
-                max(45, int(max(df["date"])) ),#+ max(df["dateError"])),
-            ],
-            "showgrid": True,
-            "showline": True,
-            "fixedrange": True,
-            "zeroline": False,
-            "gridcolor": app_color["graph_line"],
-            "nticks": max(6, round(int(df["date"].iloc[-1]) / 10)),
-        },
-    )
-    print(layout)
-    print("XD")
-    print(trace)
-    return dict(data=[trace], layout=layout)
-
-
+@app.callback(
+    Output("l0", "figure"),
+    Output("l1", "figure"),
+    Output("l2", "figure"),
+    Output("r0", "figure"),
+    Output("r1", "figure"),
+    Output("r2", "figure"),
+    [dash.dependencies.Input('person-dropdown', 'value')])
+def draw_diag_for_person(value):
+    for sensor_name in params:
+        df = gen_diag(sensor_name, value)
+        figs[sensor_name] = go.Figure()
+        figs[sensor_name].update_layout(title=sensor_name, xaxis_title="Time", yaxis_title="Value")
+        style=dict(
+            plot_bgcolor=app_color["graph_bg"],
+            paper_bgcolor=app_color["graph_bg"],
+        )
+        figs[sensor_name].update_layout(style)
+        figs[sensor_name].add_trace(go.Scatter(x=df['date'], y=df['value'], mode="markers", name=sensor_name,))
+    return figs["L0"], figs["L1"], figs["L2"], figs["R0"], figs["R1"], figs["R2"]
 
 if __name__ == "__main__":
-    t = threading.Thread(target=get_data, args=[])
+    #t = threading.Thread(target=get_data, args=[])
     #t.start()
-    #sleep(10)
-    #help(t)
-    #date.sleep(2) 
-    #t.raise_exception() 
-    #t.join()
-    df= gen_diag()
-    
-    fig.update_layout(title="Figure", xaxis_title="Time", yaxis_title="Value")
-    style=dict(
-                                    plot_bgcolor=app_color["graph_bg"],
-                                    paper_bgcolor=app_color["graph_bg"],
-                                )
-    fig.update_layout(style)
-    fig.add_trace(go.Scatter(x=df['date'], y=df['value'], mode="markers", name="L0",))
+    #draw_diag_for_person(1)
     app.run_server()
     
