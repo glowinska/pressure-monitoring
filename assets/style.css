@@ -35,7 +35,7 @@ h6 {
     margin-top: 20px;
 }
 
-.wind__speed__container {
+.speed__container {
     display: flex;
     flex-direction: column;
     background-color: #082255;
@@ -100,7 +100,7 @@ h6 {
     margin-left: 15px;
 }
 
-#wind-direction {
+#direction {
     display: flex;
     justify-content: center;
 }

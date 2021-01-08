@@ -26,8 +26,6 @@ figs = {
     'L0': go.Figure(), 'L1': go.Figure(), 'L2': go.Figure(), 'R0': go.Figure(), 'R1': go.Figure(), 'R2': go.Figure()
 }
 
-
-
 app.layout = html.Div(
     [
         # header
@@ -46,7 +44,7 @@ app.layout = html.Div(
                 html.Div(
                     [
                         html.Img(
-                            src=app.get_asset_url("dash-new-logo.png"),
+                            src=app.get_asset_url("logo.png"),
                             className="app__menu__img",
                         )
                     ],
@@ -57,7 +55,7 @@ app.layout = html.Div(
         ),
         html.Div(
             [
-                # wind date
+                #left foot
                 html.Div(
                     [
                         html.Div(
@@ -79,7 +77,7 @@ app.layout = html.Div(
                             animate=True,
                         ),
                     ],
-                    className="one-third column wind__date__container",
+                    className="one-third column date__container",
                 ),
                 # right foot
                 html.Div(
@@ -103,18 +101,18 @@ app.layout = html.Div(
                             animate=True,
                         ),
                     ],
-                    className="one-third column wind__date__container",
+                    className="one-third column date__container",
                 ),
 
                 html.Div(
                     [
-                        # histogram
+                        # personal data
                         html.Div(
                             [
                                 html.Div(
                                     [
                                         html.H6(
-                                            "PATIENT",
+                                            "PERSONAL DATA",
                                             className="graph__title",
                                         )
                                     ]
@@ -176,13 +174,13 @@ app.layout = html.Div(
                             ],
                             className="graph__container first",
                         ),
-                        # wind direction
+                        # table of measurements 
                         html.Div(
                             [
                                 html.Div(
                                     [
                                         html.H6(
-                                            "TABLE OF PRESSURE VALUES", className="graph__title"
+                                            "TABLE OF MEAsUREMENTS", className="graph__title"
                                         )
                                     ]
                                 ),
@@ -234,7 +232,6 @@ app.layout = html.Div(
     className="app__container",
 )
 
-
 def get_current_date():
     now = dt.datetime.now()
     total_date = (now.hour * 3600) + (now.minute * 60) + (now.second)
@@ -283,6 +280,5 @@ def draw_diag_for_person(value):
 if __name__ == "__main__":
     #t = threading.Thread(target=get_data, args=[])
     #t.start()
-    #draw_diag_for_person(1)
     app.run_server()
     

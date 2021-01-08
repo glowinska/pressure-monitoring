@@ -6,14 +6,8 @@ import time
 import json
 from time import time,sleep
 import requests
-import threading
 
 DB_FILE = pathlib.Path(__file__).resolve().parent.joinpath("DatabaseName2.db").resolve()
-#conn = None
-# try:
-#     conn = sqlite3.connect(str(DB_FILE))
-# except Error as err:
-#     print(err)
 
 def select_sensor(conn, id_trace):
     statement = f'SELECT * FROM sensors WHERE id_trace = {id_trace};'
@@ -105,7 +99,6 @@ def get_request(url):
     r = requests.get(url)
     return r.json()
     
-
 def get_data():
     monitor = {}
     conn = None
@@ -136,15 +129,6 @@ def get_people(conn):
         monitor = get_request('http://tesla.iem.pw.edu.pl:9080/v2/monitor/'+str(monitor_number))
         insert_person(conn, monitor['firstname'], monitor['lastname'], monitor['birthdate'], monitor['disabled'], monitor_number)        
     
-
-
 if __name__ == "__main__":
-    # def insert_person(conn, name, surname, birth_year, disabled, id):
     pass
     
-
-
-
-
-
-
