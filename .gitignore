@@ -1,0 +1,9 @@
+.vscode/*
+etc/*
+Include/*
+Lib/*
+Scripts/*
+share/*
+.help
+pyvevv.cfg
+requriements.txt
