@@ -22,7 +22,7 @@ h6 {
 }
 
 .app__header__title--grey {
-    color: #C4CDD5;
+    color: #fff;
 }
 
 .app__menu__img {
@@ -68,13 +68,13 @@ h6 {
 }
 
 .auto__label {
-    color: #DFE3E8;
+    color: #fff;
 }
 
 .auto__container {
     display: flex;
     justify-content: space-between;
-    color: #DFE3E8;
+    color: #fff;
     padding: 0px 15px;
 }
 

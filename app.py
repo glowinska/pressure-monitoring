@@ -248,6 +248,7 @@ def update_output(value):
     print(df)
     return 'NAME: {}'.format(df["name"][0]), 'SURNAME: {}'.format(df["surname"][0]), 'YEAR OF BIRTH: {}'.format(df["birth_year"][0]), 'DISABLED: {}'.format(bool(df["disabled"][0]))
 
+
 def gen_diag(sensor_name, person_id):
     total_date = get_current_date()
     traces = select_traces(None, person_id)
@@ -255,6 +256,7 @@ def gen_diag(sensor_name, person_id):
     for index, row in traces.iterrows():
         df = df.append(select_sensor_for_trace(None, row['id'], sensor_name))
     return df
+
 
 @app.callback(
     Output("l0", "figure"),
@@ -267,11 +269,25 @@ def gen_diag(sensor_name, person_id):
 def draw_diag_for_person(value):
     for sensor_name in params:
         df = gen_diag(sensor_name, value)
+        print(df)
         figs[sensor_name] = go.Figure()
         figs[sensor_name].update_layout(title=sensor_name, xaxis_title="Time", yaxis_title="Value")
         style=dict(
             plot_bgcolor=app_color["graph_bg"],
             paper_bgcolor=app_color["graph_bg"],
+            font_color="white",
+            title_font_size=18,
+            title_font_color="white",
+            xaxis=dict(
+                title="DATE",
+                linecolor=app_color["graph_bg"],  # Sets color of X-axis line
+                showgrid=False,  # Removes X-axis grid lines
+            ),
+            yaxis=dict(
+                title="VALUE",  
+                linecolor=app_color["graph_bg"],  # Sets color of Y-axis line
+                showgrid=False,  # Removes Y-axis grid lines    
+            ),
         )
         figs[sensor_name].update_layout(style)
         figs[sensor_name].add_trace(go.Scatter(x=df['date'], y=df['value'], mode="markers", name=sensor_name,))
