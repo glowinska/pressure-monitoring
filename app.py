@@ -15,9 +15,6 @@ app = dash.Dash(
     meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
 )
 
-from pyorbital.orbital import Orbital
-satellite = Orbital('TERRA')
-
 server = app.server
 
 app_color = {"graph_bg": "#082255", "graph_line": "#309ADE"}
@@ -329,19 +326,15 @@ def draw_diag_for_person(value):
         figs[sensor_name] = go.Figure()
         figs[sensor_name].update_layout(title=sensor_name, xaxis_title="Time", yaxis_title="Value")
         figs[sensor_name].update_layout(style)
-        #figs[sensor_name].add_trace(go.Scatter(x=df['date'], y=df['value'], mode="markers", name=sensor_name,))
         figs[sensor_name].add_trace(go.Scatter(x=df['date'].loc[df['anomaly'] != 1],y=df['value'],mode="markers",name="non-anomaly",))
         figs[sensor_name].add_trace(go.Scatter(x=df['date'].loc[df['anomaly'] == 1],y=df['value'],mode="markers",name="anomaly",))
     return figs["L0"], figs["L1"], figs["L2"], figs["R0"], figs["R1"], figs["R2"]
 
-# Multiple components can update everytime interval gets fired.
 # @app.callback(Output('live-update-graph', 'figure'),
 #               Input('interval-component', 'n_intervals'))
 # def update_graph_live(n):
-#     satellite = Orbital('TERRA')
 #     data = {
 #         'time': [],
-#         'Altitude': [],
 #         'value1': [],
 #         'value2': []
 #     }
@@ -367,8 +360,6 @@ def draw_diag_for_person(value):
 #         #data['value2'].append(val2)
 #         #data['Altitude'].append(1+i)
 #         #data['time'].append(time2)
-#         #print(data)
-#         #print("NEEEEEEEEEEEEEEEEEXT")
 
 #     # Create the graph with subplots
 #     fig = go.Figure()

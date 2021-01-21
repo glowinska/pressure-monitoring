@@ -95,9 +95,6 @@ def delete_people(conn):
 def get_time():
     return datetime.now().timestamp()
 
-
-
-
 def get_request(url):
     sleep(0.05)
     r = requests.get(url)
@@ -115,7 +112,6 @@ def get_data():
     count = 0
     while True:
         timerrr = get_time()
-        #total_date = (now.hour * 3600) + (now.minute * 60) + (now.second)
         for monitor_number in range(1, 7):
             monitor = get_request('http://tesla.iem.pw.edu.pl:9080/v2/monitor/'+str(monitor_number))
             trace = monitor['trace']
@@ -137,5 +133,4 @@ def get_people(conn):
 if __name__ == "__main__":
     t = threading.Thread(target=get_data, args=[])
     t.start()
-    pass
     
