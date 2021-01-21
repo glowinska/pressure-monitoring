@@ -6,6 +6,7 @@ import time
 import json
 from time import time,sleep
 import requests
+import threading
 
 DB_FILE = pathlib.Path(__file__).resolve().parent.joinpath("DatabaseName2.db").resolve()
 
@@ -94,6 +95,9 @@ def delete_people(conn):
 def get_time():
     return datetime.now().timestamp()
 
+
+
+
 def get_request(url):
     sleep(0.05)
     r = requests.get(url)
@@ -111,6 +115,7 @@ def get_data():
     count = 0
     while True:
         timerrr = get_time()
+        #total_date = (now.hour * 3600) + (now.minute * 60) + (now.second)
         for monitor_number in range(1, 7):
             monitor = get_request('http://tesla.iem.pw.edu.pl:9080/v2/monitor/'+str(monitor_number))
             trace = monitor['trace']
@@ -120,8 +125,8 @@ def get_data():
             for sensor in sensors:
                 count = count + 1
                 insert_sensor(conn, sensor['name'], sensor['anomaly'], sensor['value'], timerrr, newtraceid, count)
-            delete_sensors(conn, timerrr - 60)
-            delete_traces(conn, timerrr - 60)
+            delete_sensors(conn, timerrr - 20)
+            delete_traces(conn, timerrr - 20)
             
 def get_people(conn):
     delete_people(conn)
@@ -130,5 +135,7 @@ def get_people(conn):
         insert_person(conn, monitor['firstname'], monitor['lastname'], monitor['birthdate'], monitor['disabled'], monitor_number)        
     
 if __name__ == "__main__":
+    t = threading.Thread(target=get_data, args=[])
+    t.start()
     pass
     

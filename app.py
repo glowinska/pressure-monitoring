@@ -8,11 +8,15 @@ from time import sleep
 import plotly.graph_objects as go
 from dash.dependencies import Input, Output, State
 from db.db_api import *
+import plotly
 
 app = dash.Dash(
     __name__,
     meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
 )
+
+from pyorbital.orbital import Orbital
+satellite = Orbital('TERRA')
 
 server = app.server
 
@@ -180,45 +184,72 @@ app.layout = html.Div(
                                 html.Div(
                                     [
                                         html.H6(
-                                            "TABLE OF MEAsUREMENTS", className="graph__title"
+                                            "DESCRIPTION OF A GRAPHS", className="graph__title"
                                         )
                                     ]
                                 ),
-                                dash_table.DataTable(
-                                    id='table-editing-simple',
-                                    columns=(
-                                    [{'id': 'Model', 'name': 'SENSOR'}] +
-                                    [{'id': p, 'name': p} for p in params]
-                                    ),
-                                    data=[
-                                    dict(Model=i, **{param: 0 for param in params})
-                                    for i in ["VALUE", "ANOMALY", "MEAN", "MIN", "MAX", "QARTILES", "RMS"]
-                                    ],
-                                    style_table={'border': 'thin lightgrey solid'},
-                                                    style_header={'backgroundColor':'lightgrey','fontWeight':'bold'},
-                                                    style_cell={'textAlign':'center','width':'12%'},
-                                                    style_data_conditional=[{
-                                                        'if' : {'filter':  'side eq "bid"' },
-                                                        'color':'blue'
-                                                                }
-                                                        ]+[
-                                                        {
-                                                        'if' : {'filter': 'side eq "ask"' },
-                                                        'color':'rgb(203,24,40)'
-                                                    }]+[
-                                                        { 'if': {'row_index':'odd'},
-                                                        'backgroundColor':'rgb(242,242,242)'}
-                                                    ]+[
-                                                        {'if':{'column_id':'price'},
-                                                        'fontWeight':'bold',
-                                                        'border': 'thin lightgrey solid'}
-                                                    ]+[{'if':{'column_id':'from_mid'},
-                                                        'fontWeight':'bold'}
-                                                    ],
-                                                    style_as_list_view=True,
-                                    editable=True,
+                                # dash_table.DataTable(
+                                #     id='table-editing-simple',
+                                #     columns=(
+                                #     [{'id': 'Model', 'name': 'SENSOR'}] +
+                                #     [{'id': p, 'name': p} for p in params]
+                                #     ),
+                                #     data=[
+                                #     dict(Model=i, **{param: 0 for param in params})
+                                #     for i in ["VALUE", "ANOMALY", "MEAN", "MIN", "MAX", "QARTILES", "RMS"]
+                                #     ],
+                                #     style_table={'border': 'thin lightgrey solid'},
+                                #                     style_header={'backgroundColor':'lightgrey','fontWeight':'bold'},
+                                #                     style_cell={'textAlign':'center','width':'12%'},
+                                #                     style_data_conditional=[{
+                                #                         'if' : {'filter':  'side eq "bid"' },
+                                #                         'color':'blue'
+                                #                                 }
+                                #                         ]+[
+                                #                         {
+                                #                         'if' : {'filter': 'side eq "ask"' },
+                                #                         'color':'rgb(203,24,40)'
+                                #                     }]+[
+                                #                         { 'if': {'row_index':'odd'},
+                                #                         'backgroundColor':'rgb(242,242,242)'}
+                                #                     ]+[
+                                #                         {'if':{'column_id':'price'},
+                                #                         'fontWeight':'bold',
+                                #                         'border': 'thin lightgrey solid'}
+                                #                     ]+[{'if':{'column_id':'from_mid'},
+                                #                         'fontWeight':'bold'}
+                                #                     ],
+                                #                     style_as_list_view=True,
+                                #     editable=True,
+                                # ),
+
+                                html.Div(
+                                    [
+                                        html.H1(
+                                            " ",
+                                            className="graph__title",
+                                            #id="person-surname"
+                                        )
+                                    ]
                                 ),
-                            
+                                html.Div(
+                                    [
+                                        html.H1(
+                                            "When NO ANOMALIES are detected points of a graph are violet.",
+                                            className="graph__title",
+                                            #id="person-surname"
+                                        )
+                                    ]
+                                ),
+                                html.Div(
+                                    [
+                                        html.H1(
+                                            "When ANOMALY is detected points of a graph are red.",
+                                            className="graph__title",
+                                            #id="person-surname"
+                                        )
+                                    ]
+                                ),
                             ],
                             className="graph__container second",
                         ),
@@ -231,6 +262,25 @@ app.layout = html.Div(
     ],
     className="app__container",
 )
+
+style=dict(
+    plot_bgcolor=app_color["graph_bg"],
+    paper_bgcolor=app_color["graph_bg"],
+    font_color="white",
+    title_font_size=18,
+    title_font_color="white",
+    xaxis=dict(
+        title="DATE",
+        linecolor=app_color["graph_bg"],  # Sets color of X-axis line
+        showgrid=False,  # Removes X-axis grid lines
+    ),
+    yaxis=dict(
+        title="VALUE",  
+        linecolor=app_color["graph_bg"],  # Sets color of Y-axis line
+        showgrid=False,  # Removes Y-axis grid lines    
+    ),
+)
+
 
 def get_current_date():
     now = dt.datetime.now()
@@ -245,7 +295,7 @@ def get_current_date():
     [dash.dependencies.Input('person-dropdown', 'value')])
 def update_output(value):
     df = select_people_by_id(value)
-    print(df)
+    #print(df)
     return 'NAME: {}'.format(df["name"][0]), 'SURNAME: {}'.format(df["surname"][0]), 'YEAR OF BIRTH: {}'.format(df["birth_year"][0]), 'DISABLED: {}'.format(bool(df["disabled"][0]))
 
 
@@ -269,29 +319,76 @@ def gen_diag(sensor_name, person_id):
 def draw_diag_for_person(value):
     for sensor_name in params:
         df = gen_diag(sensor_name, value)
-        print(df)
+        #print(df)
+        data = {
+        'time': [],
+        'Altitude': [],
+        'value1': [],
+        'value2': []
+    }
         figs[sensor_name] = go.Figure()
         figs[sensor_name].update_layout(title=sensor_name, xaxis_title="Time", yaxis_title="Value")
-        style=dict(
-            plot_bgcolor=app_color["graph_bg"],
-            paper_bgcolor=app_color["graph_bg"],
-            font_color="white",
-            title_font_size=18,
-            title_font_color="white",
-            xaxis=dict(
-                title="DATE",
-                linecolor=app_color["graph_bg"],  # Sets color of X-axis line
-                showgrid=False,  # Removes X-axis grid lines
-            ),
-            yaxis=dict(
-                title="VALUE",  
-                linecolor=app_color["graph_bg"],  # Sets color of Y-axis line
-                showgrid=False,  # Removes Y-axis grid lines    
-            ),
-        )
         figs[sensor_name].update_layout(style)
-        figs[sensor_name].add_trace(go.Scatter(x=df['date'], y=df['value'], mode="markers", name=sensor_name,))
+        #figs[sensor_name].add_trace(go.Scatter(x=df['date'], y=df['value'], mode="markers", name=sensor_name,))
+        figs[sensor_name].add_trace(go.Scatter(x=df['date'].loc[df['anomaly'] != 1],y=df['value'],mode="markers",name="non-anomaly",))
+        figs[sensor_name].add_trace(go.Scatter(x=df['date'].loc[df['anomaly'] == 1],y=df['value'],mode="markers",name="anomaly",))
     return figs["L0"], figs["L1"], figs["L2"], figs["R0"], figs["R1"], figs["R2"]
+
+# Multiple components can update everytime interval gets fired.
+# @app.callback(Output('live-update-graph', 'figure'),
+#               Input('interval-component', 'n_intervals'))
+# def update_graph_live(n):
+#     satellite = Orbital('TERRA')
+#     data = {
+#         'time': [],
+#         'Altitude': [],
+#         'value1': [],
+#         'value2': []
+#     }
+
+#     df = gen_diag('L1', 1)
+
+#     # Collect some data
+#     for i in range(df.shape[0]):
+#         #df = gen_diag('L1', 1)
+#         time = dt.datetime.now() - dt.timedelta(seconds=i*20)
+#         time2 = datetime.now().timestamp()
+#         #print(df)
+#         if (df['anomaly'].iloc[i] == 0):
+#              val1 = df.loc[df['anomaly'] == 0, 'value'].iloc[0]
+#              data['value1'].append(val1)
+#              data['time'].append(time2)
+#         else: 
+#              val2 = df.loc[df['anomaly'] == 1, 'value'].iloc[0]
+#              data['value2'].append(val2)
+#              data['time'].append(time2)
+#         #val = df.loc[df['date'] == time2, 'value'].iloc[i]
+#         #data['value1'].append(val1)
+#         #data['value2'].append(val2)
+#         #data['Altitude'].append(1+i)
+#         #data['time'].append(time2)
+#         #print(data)
+#         #print("NEEEEEEEEEEEEEEEEEXT")
+
+#     # Create the graph with subplots
+#     fig = go.Figure()
+#     fig.update_layout(style)
+#     fig.add_trace({
+#         'x': data['time'],
+#         'y': data['value1'],
+#         'name': 'Nonanomaly',
+#         'mode': 'markers',
+#         'type': 'scatter'
+#     })
+#     fig.add_trace({
+#         'x': data['time'],
+#         'y': data['value2'],
+#         'name': 'Anomaly',
+#         'mode': 'markers',
+#         'type': 'scatter'
+#     })
+#     return fig
+
 
 if __name__ == "__main__":
     #t = threading.Thread(target=get_data, args=[])
